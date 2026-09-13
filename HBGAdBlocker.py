@@ -794,7 +794,7 @@ class AppManagerTab(ctk.CTkFrame):
         root.grid_columnconfigure(0, weight=1)
         root.grid_rowconfigure(2, weight=1)
         tb_h = LAYOUT["toolbar_h"]
-        block_pad = SPACE["3"]
+        block_pad = SPACE["2"]
 
         summary_card = UI.card(root, padding=block_pad, tight=True)
         summary_card.grid(row=0, column=0, sticky="ew", pady=(0, block_pad))
@@ -817,29 +817,29 @@ class AppManagerTab(ctk.CTkFrame):
         left = ctk.CTkFrame(bar, fg_color="transparent")
         left.pack(side="left")
         self.refresh_btn = UI.btn(
-            left, "Làm mới", self.load_packages_async, variant="secondary", width=84, height=tb_h
+            left, "Làm mới", self.load_packages_async, variant="secondary", width=80, height=tb_h
         )
         self.refresh_btn.pack(side="left", padx=(0, SPACE["2"]))
         self.scan_btn = UI.btn(
-            left, "Phân tích", self.scan_all_async, variant="primary", width=88, height=tb_h
+            left, "Phân tích", self.scan_all_async, variant="primary", width=84, height=tb_h
         )
         self.scan_btn.pack(side="left", padx=(0, SPACE["2"]))
         self.uninstall_btn = UI.btn(
-            left, "Gỡ chọn", self.uninstall_selected_async, variant="danger", width=76, height=tb_h
+            left, "Gỡ chọn", self.uninstall_selected_async, variant="danger", width=72, height=tb_h
         )
         self.uninstall_btn.pack(side="left", padx=(0, SPACE["2"]))
         self.more_btn = UI.btn(
-            left, "Thêm ▾", self._open_more_menu, variant="ghost", width=92, height=tb_h,
+            left, "Thêm ▾", self._open_more_menu, variant="ghost", width=84, height=tb_h,
             font=get_font("body"),
         )
         self.more_btn.pack(side="left")
-        search_wrap = UI.search_field(bar, placeholder="Tìm app hoặc package…", width=360)
+        search_wrap = UI.search_field(bar, placeholder="Tìm app hoặc package…", width=280)
         search_wrap.pack(side="right")
         self.search_entry = search_wrap._entry
         self.search_entry.bind("<KeyRelease>", self._on_search_change)
 
         meta = ctk.CTkFrame(cmd_inner, fg_color="transparent")
-        meta.pack(fill="x", pady=(SPACE["3"], 0))
+        meta.pack(fill="x", pady=(SPACE["2"], 0))
         meta_left = ctk.CTkFrame(meta, fg_color="transparent")
         meta_left.pack(side="left")
         self.selected_count_label = UI.muted(meta_left, "Đã chọn: 0", anchor="w")
@@ -875,10 +875,10 @@ class AppManagerTab(ctk.CTkFrame):
 
         table_card = ctk.CTkFrame(table_outer, fg_color=C["bg_inset"], corner_radius=RADIUS["md"])
         table_card.grid(row=1, column=0, sticky="nsew")
-        self._col_leading_w = 260
-        self._col_package_w = 280
-        self._col_state_w = 96
-        self._col_size_w = 72
+        self._col_leading_w = 230
+        self._col_package_w = 250
+        self._col_state_w = 80
+        self._col_size_w = 64
         self._sort_desc: dict[str, bool] = {}
 
         table_host = ctk.CTkFrame(table_card, fg_color=C["bg_inset"], corner_radius=0)
@@ -900,10 +900,10 @@ class AppManagerTab(ctk.CTkFrame):
         self._table_scrollbar = ttk.Scrollbar(table_host, orient="vertical", command=self.table.yview)
         self._table_scrollbar.grid(row=1, column=1, sticky="ns")
         self.table.configure(yscrollcommand=self._table_scrollbar.set)
-        self.table.column("#0", width=self._col_leading_w, minwidth=180, stretch=True, anchor="w")
-        self.table.column("package", width=self._col_package_w, minwidth=140, stretch=True, anchor="w")
-        self.table.column("state", width=self._col_state_w, minwidth=88, stretch=False, anchor="center")
-        self.table.column("size", width=self._col_size_w, minwidth=56, stretch=False, anchor="e")
+        self.table.column("#0", width=self._col_leading_w, minwidth=160, stretch=True, anchor="w")
+        self.table.column("package", width=self._col_package_w, minwidth=130, stretch=True, anchor="w")
+        self.table.column("state", width=self._col_state_w, minwidth=70, stretch=False, anchor="center")
+        self.table.column("size", width=self._col_size_w, minwidth=50, stretch=False, anchor="e")
         self.table.bind("<Configure>", self._schedule_sync_table_columns)
         table_host.bind("<Configure>", self._schedule_sync_table_columns)
         self.after_idle(self._sync_table_columns)
@@ -1491,8 +1491,8 @@ class AppManagerTab(ctk.CTkFrame):
 
     def _build_table_header(self, parent):
         """Header tùy chỉnh (tk) — checkbox/icon/Package căn khớp cột Treeview."""
-        hdr_h = 40
-        hdr_font = ("Segoe UI", 11, "bold")
+        hdr_h = 32
+        hdr_font = ("Segoe UI", 10, "bold")
         hdr_fg = C["text_secondary"]
         hdr_bg = C["bg_card"]
         icon_x = TABLE_LEADING_PAD_LEFT + TABLE_CB_PX + TABLE_LEADING_GAP
@@ -2455,15 +2455,15 @@ class MainApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("HBG AdBlocker")
-        self._win_w, self._win_h = 1320, 840
+        self._win_w, self._win_h = 1100, 620
         self.geometry(f"{self._win_w}x{self._win_h}")
-        self.minsize(1100, 700)
+        self.minsize(960, 520)
         self._connected_at = None
         self._last_scan_at = None
         self.configure(fg_color=C["bg_app"])
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         apply_window_icon(self)
-        self._brand_logo = load_brand_ctk_image(36)
+        self._brand_logo = load_brand_ctk_image(28)
 
         self.app_executor = ThreadPoolExecutor(max_workers=4)
         self.device_manager = DeviceManager()
@@ -2495,8 +2495,8 @@ class MainApp(ctk.CTk):
         self.sidebar.grid_propagate(False)
 
         brand = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        brand.pack(fill="x", padx=SPACE["4"], pady=(SPACE["6"], SPACE["5"]))
-        mark = ctk.CTkFrame(brand, width=40, height=40, corner_radius=20, fg_color=C["accent"])
+        brand.pack(fill="x", padx=SPACE["3"], pady=(SPACE["3"], SPACE["2"]))
+        mark = ctk.CTkFrame(brand, width=32, height=32, corner_radius=16, fg_color=C["accent"])
         mark.pack(side="left")
         mark.pack_propagate(False)
         if getattr(self, "_brand_logo", None) is not None:
@@ -2504,30 +2504,30 @@ class MainApp(ctk.CTk):
                 relx=0.5, rely=0.5, anchor="center"
             )
         else:
-            ctk.CTkLabel(mark, text="🛡", font=("Segoe UI", 18), text_color=C["text_primary"]).place(
+            ctk.CTkLabel(mark, text="🛡", font=("Segoe UI", 15), text_color=C["text_primary"]).place(
                 relx=0.5, rely=0.5, anchor="center"
             )
         titles = ctk.CTkFrame(brand, fg_color="transparent")
-        titles.pack(side="left", padx=(SPACE["3"], 0))
+        titles.pack(side="left", padx=(SPACE["2"], 0))
         UI.label(titles, "HBG AdBlocker", variant="title").pack(anchor="w")
-        UI.muted(titles, "Xóa quảng cáo · Dọn rác").pack(anchor="w", pady=(SPACE["1"], 0))
+        UI.muted(titles, "Xóa QC · Dọn rác").pack(anchor="w", pady=(SPACE["1"], 0))
 
         UI.section_label(self.sidebar, "Menu", anchor="w").pack(
-            fill="x", padx=SPACE["4"], pady=(SPACE["2"], SPACE["2"])
+            fill="x", padx=SPACE["3"], pady=(SPACE["2"], SPACE["1"])
         )
         nav = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        nav.pack(fill="x", padx=SPACE["3"])
+        nav.pack(fill="x", padx=SPACE["2"])
         self._nav_buttons["dashboard"] = UI.nav_item(
             nav, "Dashboard", "⌂", lambda: self._show_view("dashboard"), active=True
         )
-        self._nav_buttons["dashboard"].pack(fill="x", pady=(0, SPACE["2"]))
+        self._nav_buttons["dashboard"].pack(fill="x", pady=(0, SPACE["1"]))
         self._nav_buttons["apps"] = UI.nav_item(
             nav, "Ứng dụng", "☰", lambda: self._show_view("apps"), active=False
         )
-        self._nav_buttons["apps"].pack(fill="x", pady=(0, SPACE["2"]))
+        self._nav_buttons["apps"].pack(fill="x", pady=(0, SPACE["1"]))
 
         UI.muted(self.sidebar, APP_VERSION_LABEL, anchor="w").pack(
-            side="bottom", fill="x", padx=SPACE["4"], pady=(SPACE["4"], SPACE["2"]),
+            side="bottom", fill="x", padx=SPACE["3"], pady=(SPACE["2"], SPACE["2"]),
         )
 
     def _set_active_nav(self, key: str):
@@ -2561,13 +2561,13 @@ class MainApp(ctk.CTk):
             column=1,
             sticky="nsew",
             padx=(LAYOUT["content_pad_x"], LAYOUT["content_pad_right"]),
-            pady=(LAYOUT["content_pad_y"], SPACE["4"]),
+            pady=(LAYOUT["content_pad_y"], SPACE["2"]),
         )
         shell.grid_columnconfigure(0, weight=1)
         shell.grid_rowconfigure(1, weight=1)
 
         topbar = ctk.CTkFrame(shell, fg_color="transparent")
-        topbar.grid(row=0, column=0, sticky="ew", pady=(0, SPACE["3"]))
+        topbar.grid(row=0, column=0, sticky="ew", pady=(0, SPACE["2"]))
         topbar.grid_columnconfigure(0, weight=1)
 
         header_block = ctk.CTkFrame(topbar, fg_color="transparent")
@@ -2578,24 +2578,24 @@ class MainApp(ctk.CTk):
         self.page_breadcrumb.pack(anchor="w", pady=(SPACE["1"], 0))
 
         actions = ctk.CTkFrame(topbar, fg_color="transparent")
-        actions.grid(row=0, column=1, sticky="e", padx=(SPACE["3"], 0))
+        actions.grid(row=0, column=1, sticky="e", padx=(SPACE["2"], 0))
 
         self.scan_button = UI.btn(
-            actions, "⚡ Quét nhanh", self.quick_scan, variant="success", width=118, height=LAYOUT["toolbar_h"]
+            actions, "⚡ Quét nhanh", self.quick_scan, variant="success", width=108, height=LAYOUT["toolbar_h"]
         )
         self.scan_button.pack(side="left", padx=(0, SPACE["2"]))
         self.refresh_button = UI.toolbar_reload_btn(
-            actions, self.reload_adb, width=40, height=LAYOUT["toolbar_h"],
+            actions, self.reload_adb, width=34, height=LAYOUT["toolbar_h"],
         )
         self.refresh_button.pack(side="left", padx=(0, SPACE["1"]))
         UI.toolbar_youtube_btn(
             actions,
             lambda: webbrowser.open("https://www.youtube.com/@habg68"),
-            width=40,
+            width=34,
             height=LAYOUT["toolbar_h"],
         ).pack(side="left", padx=(0, SPACE["1"]))
         UI.btn(
-            actions, "ℹ", self.open_about, variant="ghost", width=40, height=LAYOUT["toolbar_h"],
+            actions, "ℹ", self.open_about, variant="ghost", width=34, height=LAYOUT["toolbar_h"],
         ).pack(side="left")
 
         self.content_stack = ctk.CTkFrame(shell, fg_color="transparent")
@@ -2609,10 +2609,10 @@ class MainApp(ctk.CTk):
     def _build_dashboard(self, parent):
         parent.grid_columnconfigure(0, weight=1)
         parent.grid_rowconfigure(1, weight=1)
-        block_pad = SPACE["4"]
+        block_pad = SPACE["2"]
 
-        stats_card = UI.card(parent, padding=block_pad)
-        stats_card.grid(row=0, column=0, sticky="ew", pady=(0, block_pad))
+        stats_card = UI.card(parent, padding=8, tight=True)
+        stats_card.grid(row=0, column=0, sticky="ew", pady=(0, SPACE["2"]))
         stats_inner = UI.card_inner(stats_card)
         stats_row = ctk.CTkFrame(stats_inner, fg_color="transparent")
         stats_row.pack(fill="x")
@@ -2635,10 +2635,10 @@ class MainApp(ctk.CTk):
         mid.grid_columnconfigure(1, weight=1)
         mid.grid_rowconfigure(0, weight=1)
 
-        ctrl_card = UI.card(mid, padding=block_pad)
-        ctrl_card.grid(row=0, column=0, sticky="nsew", padx=(0, SPACE["3"]))
+        ctrl_card = UI.card(mid, padding=10)
+        ctrl_card.grid(row=0, column=0, sticky="nsew", padx=(0, SPACE["2"]))
         ctrl = UI.card_inner(ctrl_card)
-        UI.label(ctrl, "Điều khiển hệ thống", variant="heading").pack(anchor="w", pady=(0, SPACE["3"]))
+        UI.label(ctrl, "Điều khiển hệ thống", variant="heading").pack(anchor="w", pady=(0, SPACE["2"]))
 
         btn_container = ctk.CTkFrame(ctrl, fg_color="transparent")
         btn_container.pack(fill="both", expand=True)
@@ -2661,11 +2661,11 @@ class MainApp(ctk.CTk):
             setattr(self, f"button_{idx}", btn)
         self._control_panel.set_enabled(False)
 
-        log_card = UI.card(mid, padding=block_pad)
+        log_card = UI.card(mid, padding=10)
         log_card.grid(row=0, column=1, sticky="nsew")
         log_inner = UI.card_inner(log_card)
         log_header = ctk.CTkFrame(log_inner, fg_color="transparent")
-        log_header.pack(fill="x", pady=(0, SPACE["3"]))
+        log_header.pack(fill="x", pady=(0, SPACE["2"]))
         log_titles = ctk.CTkFrame(log_header, fg_color="transparent")
         log_titles.pack(side="left")
         UI.label(log_titles, "Nhật ký chi tiết", variant="heading").pack(anchor="w")
@@ -2674,7 +2674,7 @@ class MainApp(ctk.CTk):
             "Tiến trình từng thao tác hiển thị tại nút bên trái",
         ).pack(anchor="w")
         self.clear_log_button = UI.btn(
-            log_header, "🗑 Xóa", self.clear_log, variant="ghost", width=80, height=36
+            log_header, "🗑 Xóa", self.clear_log, variant="ghost", width=64, height=28
         )
         self.clear_log_button.pack(side="right")
         self.log_terminal = LogTerminal(log_inner)
@@ -2682,7 +2682,7 @@ class MainApp(ctk.CTk):
         self.log_area = self.log_terminal.widget
 
         footer = ctk.CTkFrame(parent, fg_color="transparent")
-        footer.grid(row=2, column=0, sticky="ew", pady=(SPACE["4"], 0))
+        footer.grid(row=2, column=0, sticky="ew", pady=(SPACE["2"], 0))
         UI.subtitle(
             footer,
             FOOTER_TAGLINE,

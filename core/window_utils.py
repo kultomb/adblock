@@ -81,13 +81,16 @@ def remove_default_window_icon(win: ctk.Misc) -> None:
 
 
 def center_on_screen(win: ctk.Misc, width: int, height: int) -> None:
-    """Đặt cửa sổ chính giữa màn hình."""
+    """Đặt cửa sổ chính giữa màn hình, tự động giới hạn nếu màn hình nhỏ (1280x720)."""
     win.update_idletasks()
     sw = win.winfo_screenwidth()
     sh = win.winfo_screenheight()
-    x = max(0, (sw - width) // 2)
-    y = max(0, (sh - height) // 2)
-    win.geometry(f"{width}x{height}+{x}+{y}")
+    w = min(width, max(750, sw - 30))
+    h = min(height, max(480, sh - 60))
+    x = max(0, (sw - w) // 2)
+    # Giữ khoảng đệm an toàn cho taskbar Windows ở phía dưới
+    y = max(8, min((sh - h) // 2, max(8, sh - h - 50)))
+    win.geometry(f"{w}x{h}+{x}+{y}")
 
 
 def center_on_owner(win: ctk.Misc, parent: ctk.Misc) -> None:

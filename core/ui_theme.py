@@ -79,37 +79,37 @@ SPACE = {"0": 0, "1": 4, "2": 8, "3": 12, "4": 16, "5": 20, "6": 24, "7": 32, "8
          "xs": 4, "sm": 8, "md": 16, "lg": 24, "xl": 32, "2xl": 40}
 
 LAYOUT = {
-    "sidebar_width": 248,
-    "content_pad_x": 24,
-    "content_pad_y": 20,
-    "content_pad_right": 24,
-    "section_gap": 10,
-    "header_gap": 16,
-    "toolbar_h": 36,
+    "sidebar_width": 205,
+    "content_pad_x": 16,
+    "content_pad_y": 10,
+    "content_pad_right": 16,
+    "section_gap": 8,
+    "header_gap": 8,
+    "toolbar_h": 32,
     "metric_strip_h": 0,
-    "tree_row_h": 52,
-    "control_col": 460,
-    "control_btn_h": 34,
-    "control_btn_gap": 4,
+    "tree_row_h": 38,
+    "control_col": 390,
+    "control_btn_h": 32,
+    "control_btn_gap": 3,
     "max_content": 1280,
 }
 
 RADIUS = {"sm": 8, "md": 10, "lg": 12, "xl": 14}
 
-# Balanced hierarchy — titles restrained, body readable (mockup-aligned)
+# Balanced hierarchy — optimized for standard 1280x720 laptops & full HD
 FONTS = {
-    "page": ("Segoe UI", 22, "bold"),
-    "title": ("Segoe UI", 14, "bold"),
-    "heading": ("Segoe UI", 13, "bold"),
-    "body": ("Segoe UI", 13),
-    "body_sm": ("Segoe UI", 12),
-    "caption": ("Segoe UI", 11),
-    "mono": ("JetBrains Mono", 12),
-    "mono_sm": ("JetBrains Mono", 11),
-    "stat": ("Segoe UI", 15, "bold"),
-    "stat_sm": ("Segoe UI", 13, "bold"),
-    "display": ("Segoe UI", 22, "bold"),
-    "micro": ("Segoe UI", 10),
+    "page": ("Segoe UI", 18, "bold"),
+    "title": ("Segoe UI", 13, "bold"),
+    "heading": ("Segoe UI", 12, "bold"),
+    "body": ("Segoe UI", 12),
+    "body_sm": ("Segoe UI", 11),
+    "caption": ("Segoe UI", 10),
+    "mono": ("JetBrains Mono", 11),
+    "mono_sm": ("JetBrains Mono", 10),
+    "stat": ("Segoe UI", 13, "bold"),
+    "stat_sm": ("Segoe UI", 12, "bold"),
+    "display": ("Segoe UI", 18, "bold"),
+    "micro": ("Segoe UI", 9),
 }
 
 
@@ -393,10 +393,10 @@ class UI:
         row.pack_propagate(True)
         row.pack(anchor="w")
         ctk.CTkLabel(
-            row, text=icon, font=("Segoe UI", 16), text_color=C["text_tertiary"], width=22,
+            row, text=icon, font=("Segoe UI", 14), text_color=C["text_tertiary"], width=18,
         ).pack(side="left", anchor="n")
         col = ctk.CTkFrame(row, fg_color="transparent")
-        col.pack(side="left", padx=(SPACE["2"], 0))
+        col.pack(side="left", padx=(SPACE["1"], 0))
         cell._title = UI.muted(col, title)
         cell._title.pack(anchor="w")
         cell._value = UI.label(col, value, variant="stat_sm")
@@ -438,11 +438,11 @@ class UI:
         for i in range(n - 1):
             div_col = i * 2 + 1
             row.grid_columnconfigure(div_col, weight=0, minsize=1)
-            sep = ctk.CTkFrame(row, width=1, height=36, fg_color=C["border_subtle"])
+            sep = ctk.CTkFrame(row, width=1, height=28, fg_color=C["border_subtle"])
             sep.grid_propagate(False)
-            sep.grid(row=0, column=div_col, sticky="n", pady=4)
+            sep.grid(row=0, column=div_col, sticky="n", pady=2)
         for i, cell in enumerate(cells):
-            cell.grid(row=0, column=i * 2, sticky="nw", padx=(SPACE["4"], SPACE["3"]), pady=0)
+            cell.grid(row=0, column=i * 2, sticky="nw", padx=(SPACE["2"], SPACE["2"]), pady=0)
 
     @staticmethod
     def metric_strip(master, cells: list, *, min_height: int = 60) -> ctk.CTkFrame:
@@ -467,7 +467,7 @@ class UI:
     @staticmethod
     def nav_item(master, text, icon, command, *, active=False) -> ctk.CTkButton:
         return ctk.CTkButton(
-            master, text=f"  {icon}   {text}", command=command, anchor="w", height=40,
+            master, text=f"  {icon}   {text}", command=command, anchor="w", height=34,
             corner_radius=RADIUS["md"], font=get_font("body_sm"),
             fg_color=C["accent"] if active else "transparent",
             hover_color=C["accent_hover"] if active else C["bg_card_hover"],
@@ -484,7 +484,7 @@ class UI:
         style.configure(
             name,
             rowheight=rh,
-            font=("Segoe UI Semibold", 13),
+            font=("Segoe UI Semibold", 11),
             background=C["bg_inset"],
             foreground=C["text_primary"],
             fieldbackground=C["bg_inset"],
@@ -497,8 +497,8 @@ class UI:
             foreground=C["text_tertiary"],
             bordercolor=C["border_subtle"],
             relief="flat",
-            font=("Segoe UI", 11, "bold"),
-            padding=(16, 10, 12, 10),
+            font=("Segoe UI", 10, "bold"),
+            padding=(10, 6, 8, 6),
         )
         style.map(
             name,
