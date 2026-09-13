@@ -65,6 +65,8 @@ from core.bloatware_presets import (
     bloatware_label_for,
     find_installed_bloatware,
 )
+from core.restore_manager import RestoreManager
+from core.restore_dialog import show_restore_dialog
 from core.policy import (
     AD_DOMAINS,
     AD_NETWORKS,
@@ -205,13 +207,18 @@ def get_installed_packages(device_id):
     output = run_adb_command(["-s", device_id, "shell", "pm", "list", "packages"], timeout=5)
     return [line.split(":")[-1].strip() for line in output.splitlines() if line.strip()]
 
-# Hàm gỡ ứng dụng
-def uninstall_package(device_id, package):
-    result = run_adb_command(["-s", device_id, "shell", "pm", "uninstall", "-k", "--user", "0", package], timeout=10)
+# Hàm gỡ ứng dụng (không dùng -k để dọn sạch rác, tự động ghi nhận vào RestoreManager để khôi phục khi cần)
+def uninstall_package(device_id, package, name="", is_system=True):
+    result = run_adb_command(["-s", device_id, "shell", "pm", "uninstall", "--user", "0", package], timeout=10)
     is_success = "success" in (result or "").lower()
     logging.info(f"Gỡ {package}: {'thành công' if is_success else (result or 'thất bại')}")
-    if is_success and package not in REMOVED_PACKAGES:
-        REMOVED_PACKAGES.append(package)
+    if is_success:
+        if package not in REMOVED_PACKAGES:
+            REMOVED_PACKAGES.append(package)
+        try:
+            RestoreManager(appdata_dir).record_removed(package, name=name, is_system=is_system)
+        except Exception as exc:
+            logging.debug("RestoreManager record error: %s", exc)
     return is_success, result
 
 # Hàm vô hiệu hóa ứng dụng
@@ -2460,6 +2467,7 @@ class MainApp(ctk.CTk):
 
         self.app_executor = ThreadPoolExecutor(max_workers=4)
         self.device_manager = DeviceManager()
+        self.restore_manager = RestoreManager(appdata_dir)
         self.app_manager_tab = None
         self._nav_buttons = {}
         self._active_nav = "dashboard"
@@ -2645,6 +2653,8 @@ class MainApp(ctk.CTk):
             ("Xóa Launcher", self.remove_launcher, "🏠", 5),
             ("Xóa Bloatware", self.remove_bloatware, "📦", 6),
             ("Cài APK", self.install_apk_pick, "📲", 7),
+            ("Khôi phục ứng dụng", self.open_restore_dialog, "↺", 8),
+            ("Tắt / Reset DNS", self.reset_dns, "🔄", 9),
         ]
         for text, cmd, icon, idx in specs:
             btn = self._control_panel.add(text, cmd, icon=icon)
@@ -2834,16 +2844,103 @@ class MainApp(ctk.CTk):
             self.log_message("Chưa kết nối thiết bị!")
             self._action_done(self.button_1, False, "Chưa kết nối thiết bị")
             return
+
+        # Kiểm tra phiên bản Android (Private DNS chỉ hỗ trợ từ Android 9+)
+        android_ver_str = self.device_manager.android_version or ""
+        major = 0
+        try:
+            major = int(android_ver_str.split(".")[0])
+        except Exception:
+            pass
+        if major > 0 and major < 9:
+            self.log_message(f"⚠ Thiết bị đang chạy Android {android_ver_str}. Private DNS chỉ hỗ trợ từ Android 9+!")
+            self._action_done(self.button_1, False, f"Cần Android 9+ (máy: {android_ver_str})")
+            show_notice(
+                self,
+                "Không hỗ trợ Private DNS",
+                f"Thiết bị của bạn đang chạy Android {android_ver_str}.\n\nTính năng Private DNS (DoT) chỉ được Google hỗ trợ từ Android 9 (Pie) trở lên. Với Android {android_ver_str}, bạn hãy dùng tính năng 'Xóa Bloatware' và 'Xóa ứng dụng rác' để chặn quảng cáo.",
+                kind="warning",
+            )
+            return
+
         self._action_running(self.button_1, "Đang đặt AdGuard DNS…")
         self.log_message("Đang thiết lập AdGuard DNS...")
         try:
             run_adb_command(["-s", device_id, "shell", "settings", "put", "global", "private_dns_mode", "hostname"], timeout=5)
             run_adb_command(["-s", device_id, "shell", "settings", "put", "global", "private_dns_specifier", "dns.adguard.com"], timeout=5)
-            self.log_message("Đã đặt DNS: dns.adguard.com")
+            self.log_message("✓ Đã đặt DNS: dns.adguard.com")
             self._action_done(self.button_1, True, "DNS: dns.adguard.com")
         except Exception as exc:
             self.log_message(f"Lỗi DNS: {exc}")
             self._action_done(self.button_1, False, "Không đặt được DNS")
+
+    def reset_dns(self):
+        if not device_id or not is_adb_connected(device_id):
+            self.log_message("Chưa kết nối thiết bị!")
+            self._action_done(self.button_9, False, "Chưa kết nối")
+            return
+        self._action_running(self.button_9, "Đang đặt lại DNS…")
+        self.log_message("Đang khôi phục DNS mặc định (tắt Private DNS)...")
+        try:
+            run_adb_command(["-s", device_id, "shell", "settings", "put", "global", "private_dns_mode", "off"], timeout=5)
+            run_adb_command(["-s", device_id, "shell", "settings", "delete", "global", "private_dns_specifier"], timeout=5)
+            self.log_message("✓ Đã đưa DNS về mặc định của mạng/WiFi.")
+            self._action_done(self.button_9, True, "DNS: Mặc định")
+        except Exception as exc:
+            self.log_message(f"Lỗi đặt lại DNS: {exc}")
+            self._action_done(self.button_9, False, "Lỗi reset DNS")
+
+    def open_restore_dialog(self):
+        if not device_id or not is_adb_connected(device_id):
+            self.log_message("Chưa kết nối thiết bị!")
+            self._action_done(self.button_8, False, "Chưa kết nối")
+            return
+        items = self.restore_manager.get_removed_packages()
+        if not items:
+            show_notice(self, "Lịch sử khôi phục", "Chưa có ứng dụng nào trong lịch sử gỡ bỏ.", kind="info")
+            return
+        show_restore_dialog(
+            self,
+            items,
+            on_restore=self._restore_selected_packages,
+            on_remove_history=self._remove_from_restore_history,
+        )
+
+    def _remove_from_restore_history(self, packages: list[str]):
+        for pkg in packages:
+            self.restore_manager.remove_from_history(pkg)
+        self.log_message(f"Đã xóa {len(packages)} ứng dụng khỏi lịch sử khôi phục.")
+
+    def _restore_selected_packages(self, packages: list[str]):
+        self._action_running(self.button_8, f"Đang khôi phục {len(packages)} app…", progress=0.1)
+        self.log_message(f"Đang khôi phục {len(packages)} ứng dụng...")
+        self.app_executor.submit(self._restore_worker, packages)
+
+    def _restore_worker(self, packages: list[str]):
+        succeeded = []
+        failed = []
+        for idx, pkg in enumerate(packages):
+            ok, msg = self.restore_manager.restore_package(self.device_manager, pkg)
+            if ok:
+                succeeded.append(pkg)
+                self.log_message(f"✓ {msg}")
+            else:
+                failed.append((pkg, msg))
+                self.log_message(f"✗ Không khôi phục được {pkg}: {msg}")
+        self.after(0, lambda: self._after_restore_ui(succeeded, failed))
+
+    def _after_restore_ui(self, succeeded: list[str], failed: list[tuple[str, str]]):
+        if succeeded and not failed:
+            self._action_done(self.button_8, True, f"Khôi phục {len(succeeded)} app")
+            show_notice(self, "Khôi phục thành công", f"Đã khôi phục thành công {len(succeeded)} ứng dụng lên máy.", kind="success")
+        elif succeeded and failed:
+            self._action_done(self.button_8, True, f"Xong {len(succeeded)}/{len(succeeded)+len(failed)}")
+            show_notice(self, "Hoàn tất một phần", f"Đã khôi phục {len(succeeded)} app. Có {len(failed)} app không thể khôi phục.", kind="warning")
+        else:
+            self._action_done(self.button_8, False, "Khôi phục thất bại")
+            show_notice(self, "Khôi phục thất bại", "Không thể khôi phục ứng dụng đã chọn. Xem nhật ký để biết chi tiết.", kind="error")
+        if succeeded and self.app_manager_tab:
+            self.app_manager_tab.load_packages_async()
 
 
 
@@ -3226,10 +3323,33 @@ class MainApp(ctk.CTk):
         # Kiểm tra popup ngay khi bắt đầu giám sát
         popup_package = check_popup(device_id)
         if popup_package and popup_package in get_installed_packages(device_id):
-            self.log_message(f"Popup từ: {popup_package}")
-            self.handle_junk_package(popup_package)
-        
+            if not is_protected_package(popup_package):
+                self.log_message(f"Phát hiện pop-up từ: {popup_package}")
+                self.after(0, lambda p=popup_package: self._prompt_monitor_junk(p))
+
         self.app_executor.submit(self._monitor)
+
+    def _prompt_monitor_junk(self, package: str):
+        if is_protected_package(package):
+            return
+        if not hasattr(self, "_prompted_monitor_packages"):
+            self._prompted_monitor_packages = set()
+        if package in self._prompted_monitor_packages:
+            return
+        self._prompted_monitor_packages.add(package)
+        label = self.device_manager.get_app_label(package)
+        msg = f"Phát hiện ứng dụng «{label}» ({package}) đang hiển thị quảng cáo hoặc pop-up.\n\nBạn có muốn gỡ bỏ ứng dụng này không?"
+        if ask_confirm(
+            self,
+            "Cảnh báo quảng cáo",
+            msg,
+            confirm_text="Gỡ cài đặt",
+            cancel_text="Bỏ qua",
+            danger=True,
+        ):
+            self.handle_junk_package(package)
+        else:
+            self.log_message(f"Đã bỏ qua ứng dụng: {package}")
 
     def _monitor(self):
         global monitoring, monitor_process
@@ -3258,23 +3378,25 @@ class MainApp(ctk.CTk):
                     if monitoring:  # Only show message if monitoring is still active
                         self.log_message("Mất kết nối ADB, dừng giám sát...")
                     break
-                    
+
                 if check_ad_network_activity(line):
                     match = re.search(r"([a-zA-Z0-9._-]+)\s*[\(\[]", line)
                     if match:
                         package = match.group(1)
                         if package in get_installed_packages(device_id) and not is_protected_package(package):
                             self.log_message(f"Phát hiện quảng cáo từ: {package}")
-                            self.handle_junk_package(package)
-                            break
-                
+                            self.after(0, lambda p=package: self._prompt_monitor_junk(p))
+                            time.sleep(2)
+
                 # Kiểm tra popup mỗi 3 giây thay vì liên tục
                 if int(time.time()) % 3 == 0:
                     popup_package = check_popup(device_id)
                     if popup_package and popup_package in get_installed_packages(device_id):
-                        self.log_message(f"Popup từ: {popup_package}")
-                        self.handle_junk_package(popup_package)
-                
+                        if not is_protected_package(popup_package):
+                            self.log_message(f"Phát hiện pop-up từ: {popup_package}")
+                            self.after(0, lambda p=popup_package: self._prompt_monitor_junk(p))
+                            time.sleep(2)
+
                 time.sleep(0.5)
             except Exception as e:
                 self.log_message(f"Lỗi giám sát: {str(e)}")
