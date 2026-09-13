@@ -27,13 +27,38 @@ def is_popular_app(package: str) -> bool:
     return any(package.startswith(p) for p in POPULAR_APP_PREFIXES)
 
 
-def is_protected_package(package: str) -> bool:
+def is_critical_package(package: str) -> bool:
+    if is_bank_app(package):
+        return True
+    critical_prefixes = (
+        "com.android.systemui",
+        "com.android.phone",
+        "com.android.settings",
+        "com.android.server.telecom",
+        "com.android.providers.telephony",
+        "com.android.providers.contacts",
+        "com.android.packageinstaller",
+        "com.google.android.packageinstaller",
+        "com.android.permissioncontroller",
+    )
+    return any(package == p or package.startswith(p + ".") for p in critical_prefixes)
+
+
+def is_protected_package(package: str, allow_bloatware: bool = False) -> bool:
+    if is_critical_package(package):
+        return True
+    if allow_bloatware:
+        try:
+            from core.bloatware_presets import bloatware_package_set
+            if package in bloatware_package_set():
+                return False
+        except ImportError:
+            pass
     return (
         any(package.startswith(p) for p in SYSTEM_PACKAGES)
         or package in CHAT_WHITELIST
         or package in POPULAR_APPS_WHITELIST
         or is_popular_app(package)
-        or is_bank_app(package)
     )
 
 

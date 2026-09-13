@@ -14,6 +14,13 @@ BLOATWARE_TARGETS: list[tuple[str, str]] = [
     ("com.epi.baomoi", "Báo Mới (Epi)"),
     ("com.zing.mp3", "Zing MP3"),
     ("com.zing.zmp3", "Zing MP3 Alt"),
+    ("vn.com.vng.zingmp3", "Zing MP3 (VNG)"),
+    ("com.spotify.music", "Spotify"),
+    ("com.booking", "Booking.com"),
+    ("com.agoda.mobile.consumer", "Agoda"),
+    ("com.agoda.mobile", "Agoda (Alt)"),
+    ("com.linkedin.android", "LinkedIn"),
+    ("live.shorttv.apps", "ShortMax (Phim ngắn)"),
     ("com.facebook.system", "Facebook System App (Chạy ngầm)"),
     ("com.facebook.appmanager", "Facebook App Manager (Tự tải app)"),
     ("com.facebook.services", "Facebook Services"),
@@ -61,6 +68,18 @@ BLOATWARE_TARGETS: list[tuple[str, str]] = [
     ("com.huawei.browser", "Huawei Browser"),
     ("com.huawei.magazine", "Huawei Magazine Unlock"),
     ("com.hihonor.appmarket", "Honor App Market"),
+
+    # ==================== 7. GAME BLOATWARE / ADWARE CÀI SẴN (Phổ biến) ====================
+    ("com.katanlabs.worm.ioeatemall", "Worm Family - Eat 'em All"),
+    ("com.KatanLabs.tilematchpuzzlemaster", "Tile Match"),
+    ("com.fullmetalgamedev.fruitShooting", "Fruit Shooting"),
+    ("com.fullmetalgamedev.bubblepop", "Bubble Pop!"),
+    ("com.popbubbl.frenzygame", "Bubble Pop! Frenzy"),
+    ("com.fullmetalgamedev.collectball", "Collect Ball"),
+    ("com.masscreativity.wordconnect", "Word Connect"),
+    ("com.fullmetalgamedev.aquaBlock", "AquaBlock Puzzle"),
+    ("com.fullmetalgamedev.zombieDefence", "Defeat Zombie"),
+    ("com.fullmetalgamedev.ultimatecruises", "Space Cruises"),
 ]
 
 

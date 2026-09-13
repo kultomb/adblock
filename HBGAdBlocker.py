@@ -100,6 +100,16 @@ init_app_theme()
 
 REMOVED_PACKAGES = []
 
+APP_MARKETS = {
+    "com.android.vending": "Google Play Store",
+    "com.heytap.market": "Oppo App Market",
+    "com.oppo.market": "Oppo App Market (Cũ)",
+    "com.xiaomi.mipicks": "Xiaomi GetApps",
+    "com.sec.android.app.samsungapps": "Samsung Galaxy Store",
+    "com.vivo.appstore": "Vivo V-Appstore",
+    "com.huawei.appmarket": "Huawei AppGallery",
+}
+
 # Biến toàn cục
 device_id = None
 monitoring = False
@@ -198,10 +208,11 @@ def get_installed_packages(device_id):
 # Hàm gỡ ứng dụng
 def uninstall_package(device_id, package):
     result = run_adb_command(["-s", device_id, "shell", "pm", "uninstall", "-k", "--user", "0", package], timeout=10)
-    logging.info(f"Gỡ {package}: {result or 'thành công'}")
-    if package not in REMOVED_PACKAGES:
+    is_success = "success" in (result or "").lower()
+    logging.info(f"Gỡ {package}: {'thành công' if is_success else (result or 'thất bại')}")
+    if is_success and package not in REMOVED_PACKAGES:
         REMOVED_PACKAGES.append(package)
-    return result
+    return is_success, result
 
 # Hàm vô hiệu hóa ứng dụng
 def disable_app(device_id, package):
@@ -1980,10 +1991,17 @@ class AppManagerTab(ctk.CTkFrame):
         failed = []
         succeeded = []
         for pkg in packages:
-            _, err, code = self.device_manager.run(
-                ["-s", self.device_manager.serial, "shell", "pm", action, "--user", "0", pkg],
-                timeout=8,
-            )
+            if action == "enable":
+                cmd = ["-s", self.device_manager.serial, "shell", "pm", "enable", pkg]
+            else:
+                cmd = ["-s", self.device_manager.serial, "shell", "pm", action, "--user", "0", pkg]
+            _, err, code = self.device_manager.run(cmd, timeout=8)
+            if code != 0 and action == "enable":
+                # Fallback cho thiết bị yêu cầu default-state
+                _, err, code = self.device_manager.run(
+                    ["-s", self.device_manager.serial, "shell", "pm", "default-state", "--user", "0", pkg],
+                    timeout=8,
+                )
             if code != 0:
                 failed.append((pkg, err or "Lỗi không xác định"))
             else:
@@ -2776,18 +2794,19 @@ class MainApp(ctk.CTk):
                     if not result:  # Thành công
                         self.log_message(f"Đã vô hiệu hóa {friendly_name}")
         finally:
-            self.after(0, lambda: (
-                self.button_5.configure(text="  ▦  Tắt CH Play & App Market", state="normal"),
-                self._control_panel.refresh_style(self.button_5),
-            ))
+            if hasattr(self, "button_5") and "CH Play" in str(self.button_5.cget("text")):
+                self.after(0, lambda: (
+                    self.button_5.configure(text="  ▦  Tắt CH Play & App Market", state="normal"),
+                    self._control_panel.refresh_style(self.button_5),
+                ))
 
     def log_message(self, message):
-        """Hiển thị thông báo trong log terminal."""
+        """Hiển thị thông báo trong log terminal (đảm bảo an toàn thread Tkinter)."""
         line = prepare_log_line(message)
         if line is None:
             return
         if hasattr(self, "log_terminal"):
-            self.log_terminal.append(line)
+            self.after(0, lambda l=line: self.log_terminal.append(l))
         else:
             logging.info(line)
 
@@ -2892,11 +2911,16 @@ class MainApp(ctk.CTk):
 
             # Native Java Injection via DEX app_process (Tương đương Shizuku/Pixel IMS)
             try:
+                candidates = []
+                meipass = getattr(sys, "_MEIPASS", None)
+                if meipass:
+                    candidates.append(os.path.join(meipass, "core", "assets", "hbg_volte_fixer.dex"))
+                    candidates.append(os.path.join(meipass, "assets", "hbg_volte_fixer.dex"))
                 base_dir = os.path.dirname(os.path.abspath(__file__))
-                dex_path = os.path.join(base_dir, "core", "assets", "hbg_volte_fixer.dex")
-                if not os.path.exists(dex_path):
-                    dex_path = os.path.join(base_dir, "assets", "hbg_volte_fixer.dex")
-                if os.path.exists(dex_path):
+                candidates.append(os.path.join(base_dir, "core", "assets", "hbg_volte_fixer.dex"))
+                candidates.append(os.path.join(base_dir, "assets", "hbg_volte_fixer.dex"))
+                dex_path = next((p for p in candidates if os.path.isfile(p)), None)
+                if dex_path:
                     run_adb_command(["-s", device_id, "push", dex_path, "/data/local/tmp/hbg_volte_fixer.dex"], timeout=5)
                     run_adb_command(["-s", device_id, "shell", "app_process", "-Djava.class.path=/data/local/tmp/hbg_volte_fixer.dex", "/data/local/tmp", "com.hbg.volte.VolteFixer"], timeout=8)
             except Exception as e:
@@ -3133,14 +3157,16 @@ class MainApp(ctk.CTk):
                     if is_protected_package(pkg):
                         self.log_message(f"Bỏ qua app được bảo vệ: {pkg}")
                         continue
-                    result = uninstall_package(device_id, pkg)
-                    if result is not None:
+                    ok, result = uninstall_package(device_id, pkg)
+                    if ok:
                         succeeded.append(pkg)
                         self.log_message(f"Đã gỡ: {pkg}")
                         if pkg not in BLACKLIST:
                             BLACKLIST.append(pkg)
                             new_packages.append(pkg)
                             self.log_message(f"Đã thêm {pkg} vào blacklist")
+                    else:
+                        self.log_message(f"Không gỡ được {pkg}: {result or 'thất bại'}")
                 except Exception as e:
                     self.log_message(f"Lỗi gỡ {pkg}: {str(e)}")
 
@@ -3194,8 +3220,8 @@ class MainApp(ctk.CTk):
         try:
             installed = get_installed_packages(device_id)
             found = find_installed_bloatware(installed)
-            # Lọc bỏ package hệ thống được bảo vệ (vd: com.miui.*, com.xiaomi.*)
-            found = [p for p in found if not is_protected_package(p)]
+            # Lọc bỏ package hệ thống cốt lõi (Dialer, SystemUI, Settings...)
+            found = [p for p in found if not is_protected_package(p, allow_bloatware=True)]
             self.after(0, lambda f=found: self._confirm_and_remove_bloatware(f))
         except Exception as e:
             self.after(0, lambda err=str(e): self._on_bloatware_scan_failed(err))
@@ -3251,15 +3277,15 @@ class MainApp(ctk.CTk):
                     ),
                 )
                 try:
-                    if is_protected_package(pkg):
+                    if is_protected_package(pkg, allow_bloatware=True):
                         self.log_message(f"Bỏ qua app hệ thống được bảo vệ: {self._bloatware_display_label(pkg)}")
                         continue
-                    result = uninstall_package(device_id, pkg)
-                    if result is not None:
+                    ok, result = uninstall_package(device_id, pkg)
+                    if ok:
                         succeeded.append(pkg)
                         self.log_message(f"Đã gỡ bloatware: {self._bloatware_display_label(pkg)}")
                     else:
-                        self.log_message(f"Không gỡ được: {self._bloatware_display_label(pkg)}")
+                        self.log_message(f"Không gỡ được {self._bloatware_display_label(pkg)}: {result or 'thất bại'}")
                 except Exception as e:
                     self.log_message(f"Lỗi gỡ {pkg}: {e}")
         finally:
@@ -3468,8 +3494,12 @@ class MainApp(ctk.CTk):
     def _uninstall_package_thread(self, package, control_btn=None):
         ok = True
         try:
-            result = uninstall_package(device_id, package)
-            self.log_message(f"Đã gỡ {package}: {result or 'thành công'}")
+            is_ok, result = uninstall_package(device_id, package)
+            ok = is_ok
+            if is_ok:
+                self.log_message(f"Đã gỡ {package}: thành công")
+            else:
+                self.log_message(f"Không gỡ được {package}: {result or 'thất bại'}")
         except Exception as exc:
             ok = False
             self.log_message(f"Lỗi gỡ {package}: {exc}")

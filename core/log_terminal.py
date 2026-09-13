@@ -63,6 +63,10 @@ class LogTerminal(ctk.CTkFrame):
         return "info"
 
     def append(self, message: str) -> None:
+        import threading
+        if threading.current_thread() is not threading.main_thread():
+            self.after(0, lambda m=message: self.append(m))
+            return
         ts = datetime.now().strftime("%H:%M:%S")
         kind = self.classify(message)
         self._text.configure(state="normal")

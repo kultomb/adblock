@@ -1,8 +1,8 @@
 # UTF-8 — Windows EXE metadata (PyInstaller --version-file)
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 0, 17, 0),
-    prodvers=(1, 0, 17, 0),
+    filevers=(1, 0, 24, 0),
+    prodvers=(1, 0, 24, 0),
     mask=0x3F,
     flags=0x0,
     OS=0x40004,
@@ -17,12 +17,12 @@ VSVersionInfo(
         [
           StringStruct("CompanyName", "Hà BG"),
           StringStruct("FileDescription", "HBG Ad Blocker"),
-          StringStruct("FileVersion", "1.0.17"),
+          StringStruct("FileVersion", "1.0.24"),
           StringStruct("InternalName", "HBGAdBlocker"),
           StringStruct("LegalCopyright", "Copyright (c) 2026 by Hà BG"),
-          StringStruct("OriginalFilename", "HBGAdBlocker1.0.17.exe"),
+          StringStruct("OriginalFilename", "HBGAdBlocker1.0.24.exe"),
           StringStruct("ProductName", "HBG Ad Blocker"),
-          StringStruct("ProductVersion", "1.0.17"),
+          StringStruct("ProductVersion", "1.0.24"),
         ],
       ),
     ]),

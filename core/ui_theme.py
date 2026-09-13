@@ -113,8 +113,13 @@ FONTS = {
 }
 
 
-def get_font(variant: str = "body"):
-    return FONTS.get(variant, FONTS["body"])
+def get_font(variant_or_size: str | int = "body", weight: str | None = None):
+    if isinstance(variant_or_size, int):
+        family = "Segoe UI"
+        if weight:
+            return (family, variant_or_size, weight)
+        return (family, variant_or_size)
+    return FONTS.get(variant_or_size, FONTS["body"])
 
 
 def init_app_theme():
